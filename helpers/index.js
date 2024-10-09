@@ -14,6 +14,7 @@ const upsert = async (model, id, data, options = { new: true, upsert: true }) =>
     try {
         // Ensure the id is wrapped as a query object
         let updateData = await model.updateOne({ _id: id }, { $set: data }, options);
+        console.log(updateData,">>>Data")
         return updateData;
     } catch (error) {
         throw new Error(`Error updating data: ${error.message}`);
@@ -30,6 +31,9 @@ const createHashPass = async (data)=>{
 const comparePass = async (newpass, oldpass)=>{
     return await bcrypt.compare(newpass, oldpass);
 }
+
+
+
 
 module.exports = {
     findOne,

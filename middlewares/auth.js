@@ -8,6 +8,7 @@ const authentication = async (req, res, next) => {
             return errorResponse(res, 404, { message: `Authorization Must!!` })
         } else {
             let tokenVerify = await verifyToken(token);
+            console.log(tokenVerify,"?????????????")
             if (tokenVerify) {
                 if ((tokenVerify.role === 'user')) {
                     req.user = tokenVerify;

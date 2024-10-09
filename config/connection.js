@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
-// const { createContactIndexes } = require('../models/contacts');
+const { createPostIndexes } = require('../models/Post');
+const { createCommentIndexes } = require('../models/Comment');
 
 const connectDb = async () => {
     try {
@@ -7,10 +8,11 @@ const connectDb = async () => {
         await mongoose.connect(process.env.DBURL);
         console.log("Connected to MongoDB!");
 
-        // // Create indexes after connection
-        // await createContactIndexes();
-        
-        // console.log("Indexes created successfully!");
+        // Create indexes after connection
+        await createPostIndexes();
+        await createCommentIndexes();
+
+        console.log("Indexes created successfully!");
 
     } catch (error) {
         console.error("DB Connection or Index Creation Error:", error);

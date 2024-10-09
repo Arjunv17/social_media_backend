@@ -1,5 +1,5 @@
 // Add Models
-const { default: mongoose } = require('mongoose');
+const mongoose = require('mongoose');
 const { findOne, createHashPass, comparePass, findAll, upsert } = require('../helpers');
 const userModel = require('../models/user');
 const { createToken } = require('../utils/jwt');
@@ -65,15 +65,14 @@ const login = async (req, res) => {
         if (!emailExists) {
             return errorResponse(res, 400, 'Incorrect email!!');
         }
-
         // Compare Password
         let passMatch = await comparePass(password, emailExists.password)
         if (!passMatch) return errorResponse(res, 404, 'Incorrect Password')
-
+            
         //Create Token
         let token = await createToken(emailExists, '60min')
 
-        return successResponse(res, 200, { ...emailExists.toObject(), token })
+        return successResponse(res, 200, { ...emailExists, token })
 
     } catch (error) {
         return errorResponse(res, 500, `Internal Server Error ${error.message}`)
@@ -103,6 +102,8 @@ const getalluser = async (req, res) => {
 const updateUser = async (req, res) => {
     const { id, first_name, last_name, email, phone_number, status } = req.body;
     try {
+        console.log(id,"idididid")
+
         // Validate User
         const userValidation = validateUpdateUser({ first_name, last_name, email, phone_number, status });
         if (userValidation.error) {
@@ -110,10 +111,12 @@ const updateUser = async (req, res) => {
         }
 
         // Image File
-        let profileImage = (req.file && req.file.originalname) ? req.file.originalname: null
-     
+        let profileImage = (req.file && req.file.originalname) ? req.file.originalname : null
+
         // Check if user exists
         const existingUser = await findOne(userModel, { _id: new mongoose.Types.ObjectId(id) });
+
+        console.log(existingUser,"users")
         if (!existingUser) {
             return errorResponse(res, 400, 'User not found!!');
         } else if (existingUser.email === email) {
@@ -143,34 +146,9 @@ const updateUser = async (req, res) => {
 
 
 
-
-
-//Test Queries
-
-// gettestuser
-const gettestuser = async (req, res) => {
-    try {
-
-        // Find All Users
-        const allUsers = await findAll(userModel, {first_name:'Arjun'}, {first_name:1, last_name:1});
-        if (!allUsers) {
-            return errorResponse(res, 400, 'No user found!!');
-        }
-
-        // Sent Response
-        return successResponse(res, 200, allUsers)
-
-    } catch (error) {
-        return errorResponse(res, 500, `Internal Server Error ${error.message}`)
-    }
-}
-
-
-
 module.exports = {
     saveUser,
     login,
     getalluser,
-    updateUser,
-    gettestuser
+    updateUser
 }
