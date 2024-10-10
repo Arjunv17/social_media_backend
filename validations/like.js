@@ -10,19 +10,17 @@ const objectId = Joi.string().custom((value, helpers) => {
 }, 'ObjectId validation');
 
 
-const commentSchema = Joi.object({
+const likeSchema = Joi.object({
     user_id: objectId.required(),
-    post_id: objectId.required(),
-    likes: Joi.number().optional(),
-    comment_content: Joi.string().optional()
+    post_id: objectId.required()
 })
 
 
-const validateComment = (comment) => {
-    return commentSchema.validate(comment)
+const validateLike = (like) => {
+    return likeSchema.validate(like)
 }
 
 
 module.exports = {
-    validateComment
+    validateLike
 }

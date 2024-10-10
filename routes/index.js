@@ -5,6 +5,7 @@ const router = express.Router();
 const userRoutes = require('./user');
 const postRoutes = require('./posts');
 const commentRoutes = require('./comment');
+const likeRoutes = require('./like');
 
 // Use the user routes under the `/user` endpoint
 router.use('/user', userRoutes);
@@ -14,9 +15,12 @@ router.use('/user', userRoutes);
 router.use('/post', postRoutes);
 
 
-// Use the post routes under the `/comment` endpoint
+// Use the comment routes under the `/comment` endpoint
 router.use('/comment', commentRoutes);
 
+
+// Use the like routes under the `/like` endpoint
+router.use('/like', likeRoutes);
 
 
 module.exports = router; // Export the combined router
