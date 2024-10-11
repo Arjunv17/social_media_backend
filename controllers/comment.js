@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const { Comment } = require('../models/Comment');
 const { successResponse, errorResponse } = require('../utils/response');
 const { validateComment } = require('../validations/comment');
-const { upsert, findOne } = require('../helpers');
+const { upsert, findOne, deleteOne } = require('../helpers');
+const { Post } = require('../models/Post');
 
 
 
@@ -13,18 +14,30 @@ const saveComment = async (req, res) => {
         const { user_id, post_id, likes, comment_content } = req.body;
 
         // Validate Comment
-        const commentValidation = validateComment({ user_id, post_id, comment_content,likes: likes ? likes : 0 });
+        const commentValidation = validateComment({ user_id, post_id, comment_content, likes: likes ? likes : 0 });
         if (commentValidation.error) {
             return errorResponse(res, 404, commentValidation.error.message)
         }
-        
+
         // Create new Comment
-        const newComment = new Comment({    
+        const newComment = new Comment({
             user_id,
             post_id,
             likes: likes ? likes : 0,
             comment_content
         });
+
+        let findPost = await findOne(Post, { _id: new mongoose.Types.ObjectId(post_id) });
+        // If post not found
+        if (!findPost) {
+            return errorResponse(res, 404, "Post not found.");
+        }
+
+        let payload = {};
+        if (post_id) payload.comments_count = findPost.comments_count + 1;
+
+        // Update post Comment Count 
+        await upsert(Post, findPost._id, payload)
 
         // Save response
         let saveRes = await newComment.save();
@@ -72,7 +85,7 @@ const updateComment = async (req, res) => {
 
 const getComment = async (req, res) => {
     try {
-        console.log(req.body,">>>>>>>req.body>>>>>>")
+        console.log(req.body, ">>>>>>>req.body>>>>>>")
 
     } catch (error) {
         return errorResponse(res, 500, `Internal Server Error ${error.message}`)
@@ -89,18 +102,23 @@ const deleteComment = async (req, res) => {
         }
 
         // Fetch existing comment
-        let existingComment = await findOne(Post, { _id: new mongoose.Types.ObjectId(id) });
-
-        // If post not found
+        let existingComment = await findOne(Comment, { _id: new mongoose.Types.ObjectId(id) });
+        // If Comment not found
         if (!existingComment) {
-            return errorResponse(res, 404, "Post not found.");
+            return errorResponse(res, 404, "Comment not found.");
         }
 
+        // Fetch existing comment
+        let existingPost = await findOne(Post, { _id: new mongoose.Types.ObjectId(post_id) });
+        // If post not found
+        if (!existingPost) {
+            return errorResponse(res, 404, "Post not found.");
+        }
         let payload = {};
-        if(post_id) payload.comments_count = existingComment.comments_count - 1
-
+        if (post_id) payload.comments_count = existingPost.comments_count - 1;
+        
         // Update Post Comment
-        await upsert(Post, existingComment._id, payload)
+        await upsert(Post, existingPost._id, payload)
 
         // Save Response
         let deleteRes = await deleteOne(Comment, existingComment._id);

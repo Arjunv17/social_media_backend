@@ -25,6 +25,19 @@ const saveLike = async (req, res) => {
             post_id
         });
 
+        // Find Post
+        let findPost = await findOne(Post, {_id: new mongoose.Types.ObjectId(post_id)});
+         // If post not found
+         if (!findPost) {
+            return errorResponse(res, 404, "Post not found.");
+        }
+
+        let payload = {};
+        if(post_id) payload.likes = findPost.likes + 1;
+        
+        // Update post likes 
+        await upsert(Post, findPost._id , payload)
+
         // Save response
         let saveRes = await newComment.save();
         return successResponse(res, 200, saveRes);

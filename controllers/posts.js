@@ -50,7 +50,7 @@ const updatePost = async (req, res) => {
 
         // Fetch existing post
         let existingPost = await findOne(Post, { _id: new mongoose.Types.ObjectId(id) });
-        
+
         // If post not found
         if (!existingPost) {
             return errorResponse(res, 404, "Post not found.");
@@ -62,7 +62,7 @@ const updatePost = async (req, res) => {
         if (content) payload.content = content; // Update content
         if (likes) payload.likes = existingPost.likes + Number(likes); // Update likes if provided
         if (comments_count) payload.comments_count = existingPost.comments_count + Number(comments_count); // Update comments_count if provided
-        
+
         // Handle attachments if a file is uploaded
         if (req.file) {
             payload.attachments = req.file.originalname;
@@ -77,7 +77,93 @@ const updatePost = async (req, res) => {
     }
 };
 
+const getPostLikeAndComments = async (req, res) => {
+    try {
+        let postArray = await Post.aggregate([
+            {
+                $lookup: {
+                    from: 'likes',
+                    let: { postId: '$_id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $eq: ['$post_id', '$$postId']
+                                }
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: 'users',
+                                localField: 'user_id',
+                                foreignField: '_id',
+                                as: 'user'
+                            }
+                        },
+                        {
+                            $unwind: {
+                                path: '$user',
+                                preserveNullAndEmptyArrays: true
+                            }
+                        },
+                        {
+                            $project: {
+                                fullname: { $concat: ['$user.first_name', " ", '$user.last_name'] },
+                                profile:'$user.profile_image',
+                            }
+                        }
+                    ],
+                    as: 'Likes'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'comments',
+                    let: { commentId: '$_id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $eq: ['$post_id', '$$commentId']
+                                }
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: 'users',
+                                localField: 'user_id',
+                                foreignField: '_id',
+                                as: 'user'
+                            }
+                        },
+                        {
+                            $unwind: {
+                                path: '$user',
+                                preserveNullAndEmptyArrays: true
+                            }
+                        },
+                        {
+                            $project: {
+                                fullname: { $concat: ['$user.first_name', " ", '$user.last_name'] },
+                                profile:'$user.profile_image',
+                                comment_content: 1, // Include the comment content in the projection
+                            }
+                        }
+                    ],
+                    as: 'Comments'
+                }
+            }
+        ]);
+
+        // Send Response
+        return successResponse(res, 200, postArray);
+    } catch (error) {
+        return errorResponse(res, 500, `Internal Server Error: ${error.message}`);
+    }
+}
+
 module.exports = {
     savePost,
-    updatePost
+    updatePost,
+    getPostLikeAndComments
 }
