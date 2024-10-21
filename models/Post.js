@@ -18,6 +18,7 @@ const createPostIndexes = async () => {
         await Post.collection.createIndex({ user_id: 1 });
         await Post.collection.createIndex({ likes: 1 });
         await Post.collection.createIndex({ comments_count: 1 });
+        await Post.collection.createIndex({ createdAt: 1 });
     } catch (error) {
         console.error("Error creating Post indexes:", error);
     }

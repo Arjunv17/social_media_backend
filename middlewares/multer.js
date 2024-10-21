@@ -15,10 +15,16 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
     // Check file type
-    if (file.mimetype === 'image/png' || file.mimetype === 'image/jpeg') {
+    if (
+        file.mimetype === 'image/png' ||
+        file.mimetype === 'image/jpeg' ||
+        file.mimetype === 'video/mp4' ||
+        file.mimetype === 'video/webm' ||
+        file.mimetype === 'video/quicktime' // For .mov files
+    ) {
         cb(null, true); // Accept file
     } else {
-        cb(new Error('Only .png and .jpeg formats are allowed!'), false); // Reject file
+        cb(new Error('Only .png, .jpeg, .mp4, .webm, and .mov formats are allowed!'), false); // Reject file
     }
 }
 

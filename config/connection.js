@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { createPostIndexes } = require('../models/Post');
 const { createCommentIndexes } = require('../models/Comment');
+const { createFriendsIndexes } = require('../models/FriendRequest');
 
 const connectDb = async () => {
     try {
@@ -11,6 +12,7 @@ const connectDb = async () => {
         // Create indexes after connection
         await createPostIndexes();
         await createCommentIndexes();
+        await createFriendsIndexes();
 
         console.log("Indexes created successfully!");
 

@@ -90,7 +90,7 @@ const getalluser = async (req, res) => {
         }
 
         // Sent Response
-        return successResponse(res, 200, allUsers)
+        return successResponse(res, 200, {data:allUsers, message:'Fetched user successfully!!'})
 
     } catch (error) {
         return errorResponse(res, 500, `Internal Server Error ${error.message}`)

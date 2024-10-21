@@ -16,36 +16,53 @@ const saveLike = async (req, res) => {
         // Validate Like
         const likeValidation = validateLike({ user_id, post_id });
         if (likeValidation.error) {
-            return errorResponse(res, 404, likeValidation.error.message)
+            return errorResponse(res, 400, likeValidation.error.message);
         }
 
-        // Create new Like
-        const newComment = new Likes({
-            user_id,
-            post_id
-        });
+        // Find existing Like and Post in parallel
+        const [existingLike, existingPost] = await Promise.all([
+            findOne(Likes, { post_id: new mongoose.Types.ObjectId(post_id), user_id: new mongoose.Types.ObjectId(user_id) }),
+            findOne(Post, { _id: new mongoose.Types.ObjectId(post_id) })
+        ]);
 
-        // Find Post
-        let findPost = await findOne(Post, {_id: new mongoose.Types.ObjectId(post_id)});
-         // If post not found
-         if (!findPost) {
+        // If post not found, return an error early
+        if (!existingPost) {
             return errorResponse(res, 404, "Post not found.");
         }
 
         let payload = {};
-        if(post_id) payload.likes = findPost.likes + 1;
-        
-        // Update post likes 
-        await upsert(Post, findPost._id , payload)
+        let message = '';
 
-        // Save response
-        let saveRes = await newComment.save();
-        return successResponse(res, 200, saveRes);
+        if (!existingLike) {
+            // If no like exists, create a new like and increment the post's like count
+            const newLike = new Likes({
+                user_id,
+                post_id,
+                is_active: true
+            });
+            await newLike.save();
 
+            payload.likes = existingPost.likes + 1;
+            message = 'Like Added Successfully!';
+        } else if (existingLike.is_active) {
+            // If the like exists and is active, remove it and decrement the post's like count
+            await deleteOne(Likes, existingLike._id);
+
+            payload.likes = existingPost.likes - 1;
+            message = 'Like Removed Successfully!';
+        } else {
+            return errorResponse(res, 400, "Something went wrong with the like status.");
+        }
+
+        // Update the post's like count
+        await upsert(Post, existingPost._id, payload);
+
+        return successResponse(res, 200, { message, likes: payload.likes });
     } catch (error) {
-        return errorResponse(res, 500, `Internal Server Error ${error.message}`)
+        return errorResponse(res, 500, `Internal Server Error: ${error.message}`);
     }
-}
+};
+
 
 // Delete Like 
 const deleteLike = async (req, res) => {
@@ -70,7 +87,7 @@ const deleteLike = async (req, res) => {
         }
 
         let payload = {};
-        if(post_id) payload.likes = existingPost.likes - 1
+        if (post_id) payload.likes = existingPost.likes - 1
 
         // Update Post Likes
         await upsert(Post, existingPost._id, payload)
@@ -85,17 +102,23 @@ const deleteLike = async (req, res) => {
 };
 
 
-// const getComment = async (req, res) => {
-//     try {
-//         console.log(req.body,">>>>>>>req.body>>>>>>")
+const getLikes = async (req, res) => {
+    try {
+        const { user_id } = req.query;
+        let likesArray = await Likes.aggregate([
+            {
+                $match: { user_id: new mongoose.Types.ObjectId(user_id) }
+            }
+        ])
+        return successResponse(res, 200, { data: likesArray, message: 'Like Fetched Successfully!!' });
 
-//     } catch (error) {
-//         return errorResponse(res, 500, `Internal Server Error ${error.message}`)
-//     }
-// }
+    } catch (error) {
+        return errorResponse(res, 500, `Internal Server Error ${error.message}`)
+    }
+}
 
 module.exports = {
     saveLike,
     deleteLike,
-    // getComment
+    getLikes
 }

@@ -15,7 +15,7 @@ const createLikeIndexes = async () => {
         await Likes.collection.createIndex({ user_id: 1 });
         await Likes.collection.createIndex({ post_id: 1 });
     } catch (error) {
-        console.error("Error creating Comment indexes:", error);
+        console.error("Error creating likes indexes:", error);
     }
 };
 

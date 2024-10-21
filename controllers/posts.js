@@ -1,6 +1,6 @@
 // Add Models
 const mongoose = require('mongoose');
-const { findOne, upsert } = require('../helpers');
+const { findOne, upsert, findAll } = require('../helpers');
 const { Post } = require('../models/Post');
 const { successResponse, errorResponse } = require('../utils/response');
 const { validatePost } = require('../validations/posts');
@@ -30,7 +30,7 @@ const savePost = async (req, res) => {
 
         // Save response
         let saveRes = await newPost.save();
-        return successResponse(res, 200, saveRes)
+        return successResponse(res, 200, { data: saveRes, message: "Post saved successfully!!" })
 
 
 
@@ -78,8 +78,18 @@ const updatePost = async (req, res) => {
 };
 
 const getPostLikeAndComments = async (req, res) => {
+    const { post_id } = req.query;
     try {
+        // Check Post Id Required
+        if (!post_id) {
+            return errorResponse(res, 400, "Post ID is required.");
+        }
+
+        // Get Post by like and comments
         let postArray = await Post.aggregate([
+            {
+                $match: { _id: new mongoose.Types.ObjectId(post_id) }
+            },
             {
                 $lookup: {
                     from: 'likes',
@@ -109,7 +119,7 @@ const getPostLikeAndComments = async (req, res) => {
                         {
                             $project: {
                                 fullname: { $concat: ['$user.first_name', " ", '$user.last_name'] },
-                                profile:'$user.profile_image',
+                                profile: '$user.profile_image',
                             }
                         }
                     ],
@@ -145,7 +155,7 @@ const getPostLikeAndComments = async (req, res) => {
                         {
                             $project: {
                                 fullname: { $concat: ['$user.first_name', " ", '$user.last_name'] },
-                                profile:'$user.profile_image',
+                                profile: '$user.profile_image',
                                 comment_content: 1, // Include the comment content in the projection
                             }
                         }
@@ -162,8 +172,81 @@ const getPostLikeAndComments = async (req, res) => {
     }
 }
 
+const getPosts = async (req, res) => {
+    const { filter, pageNumber = 1, pageSize = 10 } = req.query;
+    try {
+        // Convert pageNumber and pageSize to integers
+        const page = parseInt(pageNumber);
+        const limit = parseInt(pageSize);
+        const skip = (page - 1) * limit;
+
+        // Match content using regex for partial matching if a filter is provided
+        const matchStage = filter
+            ? { content: { $regex: filter, $options: 'i' } }
+            : {};
+
+        // Get total document count with filter
+        const totalDocuments = await Post.countDocuments(matchStage);
+
+        // Get Posts with the filter, pagination, and user details
+        const posts = await Post.aggregate([
+            {
+                $match: matchStage
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'user_id',
+                    foreignField: '_id',
+                    as: 'users'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$users',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $sort: {
+                    createdAt: -1
+                }
+            },
+            {
+                $skip: skip
+            },
+            {
+                $limit: limit
+            },
+            {
+                $project: {
+                    content: 1,
+                    likes: 1,
+                    comments_count: 1,
+                    attachments: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    fullname: { $concat: ['$users.first_name', " ", '$users.last_name'] },
+                }
+            }
+        ]);
+
+        // Send Response with total document count and paginated posts
+        return successResponse(res, 200, {
+            posts,
+            totalDocuments,
+            currentPage: page,
+            pageSize: limit,
+            message:'Post Fetched Successfully!!'
+        });
+    } catch (error) {
+        return errorResponse(res, 500, `Internal Server Error: ${error.message}`);
+    }
+}
+
 module.exports = {
     savePost,
     updatePost,
-    getPostLikeAndComments
+    getPostLikeAndComments,
+    getPosts
 }
