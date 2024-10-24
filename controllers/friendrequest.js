@@ -122,28 +122,7 @@ const getFriendRequest = async (req, res) => {
     }
 };
 
-// Get Friend List 
-const getFriendList = async (req, res) => {
-    try {
-        let userId = req.user ? req.user.id : null;
 
-        if (!userId) {
-            return errorResponse(res, 400, "User ID is required");
-        }
-
-        // // Find friend list
-        // let {friends} = await findOne(userModel, {_id: new mongoose.Types.ObjectId(userId)})
-        // console.log(friends,">>>")
-        // friends.forEach(element => {
-        //     await findOne(userModel, {_id: new mongoose.Types.ObjectId(userId)})
-        // });
-
-        // return successResponse(res, 200, { data: existRequest, message: "Request Fetched!" });
-
-    } catch (error) {
-        return errorResponse(res, 500, `Internal Server Error: ${error.message}`);
-    }
-};
 
 // Update Status Request 
 const updateRequest = async (req, res) => {
@@ -243,5 +222,4 @@ module.exports = {
     sentRequest,
     getFriendRequest,
     updateRequest,
-    getFriendList
 }
