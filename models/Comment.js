@@ -14,8 +14,7 @@ const Comment = mongoose.model('comments', CommentSchema);
 // Create Post Indexes
 const createCommentIndexes = async () => {
     try {
-        await Comment.collection.createIndex({ user_id: 1 });
-        await Comment.collection.createIndex({ post_id: 1 });
+        await Comment.collection.createIndex({ user_id: 1, post_id: 1 });
     } catch (error) {
         console.error("Error creating Comment indexes:", error);
     }

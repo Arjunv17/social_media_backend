@@ -15,7 +15,7 @@ const server = http.createServer(app);
 //Sockets Cors
 const io = socketIo(server, {
   cors: {
-    origin: 'http://localhost:5173', // Use a specific origin
+    origin: ['http://localhost:5173', 'http://localhost:5174'], // Use a specific origin
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -23,7 +23,7 @@ const io = socketIo(server, {
 
 // Apply CORS middleware before other middleware
 const corsOptions = {
-  origin: ['http://localhost:5173', '*'],
+  origin: ['http://localhost:5173'],
   methods: ['GET', 'POST'],
   credentials: true,
   optionsSuccessStatus: 200

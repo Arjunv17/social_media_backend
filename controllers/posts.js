@@ -186,50 +186,55 @@ const getPosts = async (req, res) => {
             : {};
 
         // Get total document count with filter
-        const totalDocuments = await Post.countDocuments(matchStage);
+        // const totalDocuments = await Post.countDocuments(matchStage);
 
         // Get Posts with the filter, pagination, and user details
-        const posts = await Post.aggregate([
+        const result = await Post.aggregate([
             {
-                $match: matchStage
+                $match: matchStage // Match stage to filter posts
             },
             {
-                $lookup: {
-                    from: 'users',
-                    localField: 'user_id',
-                    foreignField: '_id',
-                    as: 'users'
-                }
-            },
-            {
-                $unwind: {
-                    path: '$users',
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
-                $sort: {
-                    createdAt: -1
-                }
-            },
-            {
-                $skip: skip
-            },
-            {
-                $limit: limit
-            },
-            {
-                $project: {
-                    content: 1,
-                    likes: 1,
-                    comments_count: 1,
-                    attachments: 1,
-                    createdAt: 1,
-                    updatedAt: 1,
-                    fullname: { $concat: ['$users.first_name', " ", '$users.last_name'] },
+                $facet: {
+                    totalCount: [
+                        { $count: "totalDocuments" } // Count total matching documents
+                    ],
+                    paginatedData: [
+                        { $sort: { createdAt: -1 } }, // Sort posts by creation date
+                        { $skip: skip },             // Skip for pagination
+                        { $limit: limit },           // Limit for pagination
+                        {
+                            $lookup: {
+                                from: 'users',
+                                localField: 'user_id',
+                                foreignField: '_id',
+                                as: 'users'
+                            }
+                        },
+                        {
+                            $unwind: {
+                                path: '$users',
+                                preserveNullAndEmptyArrays: true
+                            }
+                        },
+                        {
+                            $project: {
+                                content: 1,
+                                likes: 1,
+                                comments_count: 1,
+                                attachments: 1,
+                                createdAt: 1,
+                                updatedAt: 1,
+                                fullname: { $concat: ['$users.first_name', " ", '$users.last_name'] }
+                            }
+                        }
+                    ]
                 }
             }
         ]);
+        
+        const totalDocuments = result[0].totalCount[0]?.totalDocuments || 0;
+        const posts = result[0].paginatedData;
+        
 
         // Send Response with total document count and paginated posts
         return successResponse(res, 200, {
